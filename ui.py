@@ -1,115 +1,71 @@
 from tkinter import *
+from tkinter import messagebox
 from tkmacosx import Button
 from game_brain import GameBrain
-from tkinter import messagebox
 
-COLUMNS = [0, 1, 2, 3, 4, 5]
-ROWS = [1, 2, 3, 4, 5, 6]
-FONT = ("Arial", 15, "normal")
+COLUMNS = [0, 1, 2]
+ROWS = [0, 1, 2]
+FONT = ("Arial", 20, "normal")
 
 
-class GameBoard:
+class GameInterface:
 
     def __init__(self, game_brain: GameBrain):
 
         self.game_brain = game_brain
 
         self.root = Tk()
-        self.root.title("Tile Memory Game")
-        self.root.config(padx=15, pady=10)
+        self.root.title("TicTacToe")
+        self.root.config(padx=15, pady=15)
 
         self.game_tiles = []
-        self.create_tiles()
+        self.create_game_tiles()
 
-        self.level_label = Label(text=f"Level: {self.game_brain.level}", pady=5, font=FONT)
-        self.level_label.grid(column=0, row=0, columnspan=2)
-
-        self.high_score_label = Label(text=f"High score: {self.game_brain.high_score}", pady=5, font=FONT)
-        self.high_score_label.grid(column=4, row=0, columnspan=2)
-
-        self.start_button = Button(text="Start", bg="green", fg="white", command=self.next_level)
-        self.start_button.config(padx=5, pady=5, font=FONT)
-        self.start_button.grid(column=1, row=7, columnspan=2)
-
-        self.reset_button = Button(text="Reset", bg="red", fg="white", command=self.reset_game)
-        self.reset_button.config(padx=5, pady=5, font=FONT)
-        self.reset_button.grid(column=3, row=7, columnspan=2)
-
-        self.player_sequence = []
+        self.reset_button = Button(text="Reset", bg="red", fg="white", font=FONT)
+        self.reset_button.config(width=150, height=50, command=self.reset_game)
+        self.reset_button.grid(column=0, row=3, columnspan=3)
 
         self.root.mainloop()
 
-    def create_tiles(self):
+    def create_game_tiles(self):
         i = 0
         for col in COLUMNS:
             for row in ROWS:
-                tile = Button(width=50, height=50, command=lambda t=i: self.tile_pressed(t))
-                tile.grid(column=col, row=row)
-                self.game_tiles.append(tile)
+                new_tile = Button(font=("Arial", 100, "normal"))
+                new_tile.config(width=100, height=100, command=lambda t=i: self.tile_clicked(t))
+                new_tile.grid(column=col, row=row)
+                self.game_tiles.append(new_tile)
                 i += 1
 
-    def reset_tiles(self):
-        for tile in self.game_tiles:
-            tile.config(bg="white")
-
-    def flash_tile(self, tile):
-        tile.config(bg="red")
-        tile.after(1500, self.reset_tiles)
-
-    def show_tile_sequence(self):
-        self.game_brain.extend_sequence()
-        tile_indices = self.game_brain.tile_sequence
-        for index in tile_indices:
-            new_tile = self.game_tiles[index]
-            self.flash_tile(new_tile)
-
-    def tile_pressed(self, t):
-        tile = self.game_tiles[t]
-        self.player_sequence.append(t)
-        answer_correct = self.game_brain.check_tile(t)
-        if answer_correct:
-            tile.config(bg="green")
-            if len(self.player_sequence) == len(self.game_brain.tile_sequence):
-                sequence_correct = self.game_brain.check_sequence(self.player_sequence)
-                if sequence_correct:
-                    self.root.after(1000, self.next_level)
+    def tile_clicked(self, t):
+        position_free = self.game_brain.check_position_free(t)
+        if not position_free:
+            messagebox.showinfo(message="That position is already taken!\n\nPlease try another square.")
         else:
-            tile.config(bg="red")
-            self.game_over()
+            marker = self.game_brain.determine_marker()
+            self.input_marker(marker, t)
+            self.game_brain.add_position(marker, t)
+            marker_wins = self.game_brain.check_winner(marker)
+            if marker_wins:
+                messagebox.showinfo(message=f"{marker} WINS!")
+                self.end_game()
+            else:
+                board_full = self.game_brain.check_board_full()
+                if board_full:
+                    messagebox.showinfo(message="It's a DRAW")
+                    self.end_game()
 
-    def next_level(self):
-        self.start_button.config(state="disabled")
-        self.reset_tiles()
-        self.level_label.config(text=f"Level: {self.game_brain.level}")
-        self.player_sequence = []
-        self.show_tile_sequence()
+    def input_marker(self, marker, position):
+        selected_tile = self.game_tiles[position]
+        selected_tile.config(text=marker)
 
-    def game_over(self):
-        for game_tile in self.game_tiles:
-            game_tile.config(state="disabled")
-        self.game_brain.update_high_score()
-        self.high_score_label.config(text=f"High score: {self.game_brain.high_score}")
-        messagebox.showinfo(message=f"GAME OVER!\n\nYou reached level {self.game_brain.level}\n\n"
-                                    f"Press Reset and Start to play again")
+    def end_game(self):
+        for tile in self.game_tiles:
+            tile.config(state="disabled")
 
-    def recreate_tiles(self):
+    def reset_game(self):
         for tile in self.game_tiles:
             tile.destroy()
         self.game_tiles = []
-        self.create_tiles()
-
-    def recreate_start_button(self):
-        self.start_button.destroy()
-        self.start_button = Button(text="Start", bg="green", fg="white", command=self.next_level)
-        self.start_button.config(padx=5, pady=5, font=FONT)
-        self.start_button.grid(column=1, row=7, columnspan=2)
-
-    def reset_game(self):
-        self.recreate_tiles()
-        self.recreate_start_button()
-        self.game_brain.reset_sequence()
-        self.game_brain.reset_level()
-        self.level_label.config(text=f"Level: {self.game_brain.level}")
-        with open("high_score.txt") as data:
-            high_score = data.read()
-        self.high_score_label.config(text=f"High score: {high_score}")
+        self.create_game_tiles()
+        self.game_brain.reset_game_board()
