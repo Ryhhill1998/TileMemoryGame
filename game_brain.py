@@ -1,12 +1,12 @@
 import random
 
-TILE_NUMBERS = list(range(0, 16))
+TILE_NUMBERS = list(range(0, 36))
 
 try:
     with open("high_score.txt") as data:
         HIGH_SCORE = int(data.read())
 except FileNotFoundError:
-    HIGH_SCORE = 0
+    HIGH_SCORE = 1
 
 
 class GameBrain:

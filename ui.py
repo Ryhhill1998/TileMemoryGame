@@ -1,6 +1,7 @@
 from tkinter import *
 from tkmacosx import Button
 from game_brain import GameBrain
+from tkinter import messagebox
 
 COLUMNS = [0, 1, 2, 3, 4, 5]
 ROWS = [1, 2, 3, 4, 5, 6]
@@ -77,6 +78,7 @@ class GameBoard:
             self.game_over()
 
     def next_level(self):
+        self.start_button.config(state="disabled")
         self.reset_tiles()
         self.level_label.config(text=f"Level: {self.game_brain.level}")
         self.player_sequence = []
@@ -86,6 +88,9 @@ class GameBoard:
         for game_tile in self.game_tiles:
             game_tile.config(state="disabled")
         self.game_brain.update_high_score()
+        self.high_score_label.config(text=f"High score: {self.game_brain.high_score}")
+        messagebox.showinfo(message=f"GAME OVER!\n\nYou reached level {self.game_brain.level}\n\n"
+                                    f"Press Reset and Start to play again")
 
     def recreate_tiles(self):
         for tile in self.game_tiles:
